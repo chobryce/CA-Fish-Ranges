@@ -40,6 +40,8 @@
     .story p{margin:0 0 8px;color:#43505f;font-size:13px;line-height:1.35}
     .story ul{margin:0;padding-left:18px;color:#5a6774;font-size:12px}
     .legend{margin-top:10px;padding-top:10px;border-top:1px solid rgba(98,110,122,.16);font-size:12px;color:#4e5c6b}
+    .sp-pill{display:block;width:100%;text-align:left;margin:4px 0;padding:7px 8px;border-radius:8px;border:1px solid rgba(90,110,128,.28);background:#f7f9fa;color:#304050;cursor:pointer;font-size:12px}
+    .sp-pill.active{background:#0e2946;color:#bfe5ff;border-color:#2f7bd6}
     .bottom{left:50%;bottom:16px;transform:translateX(-50%);padding:9px;display:flex;gap:8px;align-items:center}
     button{border:1px solid rgba(86,100,114,.28);background:#f8f9f7;color:#34404c;border-radius:8px;padding:7px 11px;cursor:pointer}
     button.active{background:var(--ui);color:#fff;border-color:var(--ui)}
@@ -61,6 +63,7 @@
   <div class="kpi"><span>Accessible Miles</span><b id="milesVal" class="dark">—</b></div>
   <div class="story"><h3 id="storyTitle">Click any highlighted river corridor</h3><p id="storyText">Choose a river and slide through time to see narrative shifts, rough abundance estimates, and source context.</p><ul id="sourceList"><li>NOAA Fisheries status resources.</li></ul></div>
   <div class="legend" id="legend"></div>
+  <div class="story"><h3>Genus Oncorhynchus</h3><div id="speciesFilters"></div><div class="meta" style="margin-top:10px">Select Subspecies / DPS</div><ul id="dpsList"><li>CV Spring-Run Chinook — Critically Endangered</li><li>Sacramento Winter-Run — Endangered</li><li>Klamath River Coho — Recovering</li><li>South-Central Coast Steelhead — Threatened</li></ul></div>
 </section>
 <div class="panel bottom"><button id="histBtn">Historical Range</button><button id="curBtn" class="active">Current Range</button><button id="declineBtn">% Decline Map</button><input id="yearSlider" type="range" min="1700" max="2024" value="1850"/><div class="year" id="yearLabel">1850</div></div>
 <script src="https://js.arcgis.com/4.30/"></script>
@@ -2319,7 +2322,24 @@ const atlas={
   }
 };
 
-const names=Object.keys(atlas);
+
+atlas["Guadalupe River (San Jose)"]={region:"South Bay",hist:54000,miles:42,line:[[-121.93,37.36],[-121.90,37.33],[-121.88,37.31],[-121.87,37.29]],stories:["1700: Steelhead used South Bay tributaries including Guadalupe headwaters.","1900: Urbanization/channelization reduced floodplain complexity.","2024: Urban restoration corridors support limited returns."],sources:["NOAA steelhead DPS", "Santa Clara Valley Habitat Plan", "CDFW stream inventories"]};
+atlas["San Lorenzo River (Santa Cruz)"]={region:"Santa Cruz Mountains",hist:78000,miles:58,line:[[-122.05,37.11],[-122.03,37.04],[-122.01,36.98],[-122.00,36.95]],stories:["1700: Coho and steelhead migrated through dense redwood tributaries.","1900: Logging and barriers degraded spawning habitat.","2024: Active restoration and fish-passage projects continue."],sources:["NOAA CCC Coho", "County of Santa Cruz watershed reports", "CDFW monitoring"]};
+atlas["Pajaro River"]={region:"Central Coast",hist:67000,miles:82,line:[[-121.62,36.88],[-121.58,36.85],[-121.53,36.80],[-121.48,36.76]],stories:["1700: Seasonal steelhead movement across broad lower valley channels.","1900: Levee/flood-control infrastructure constrained habitat.","2024: Intermittent access tied strongly to flow years."],sources:["NOAA steelhead status", "Monterey Bay watershed studies", "CDFW anadromous records"]};
+atlas["Coyote Creek (South Bay)"]={region:"South Bay",hist:44000,miles:47,line:[[-121.75,37.20],[-121.79,37.26],[-121.83,37.31],[-121.87,37.35]],stories:["1700: Steelhead moved inland in wet years.","1900: Major flood infrastructure reshaped channel function.","2024: Habitat improvements increase juvenile refuge patches."],sources:["SCV Water reports", "NOAA DPS recovery", "USGS Bay hydrology"]};
+
+const speciesCatalog=["All Species","Chinook Salmon","Coho Salmon","Steelhead Trout","Pink Salmon","Chum Salmon","Coastal Cutthroat Trout"];
+let selectedSpecies="All Species";
+function inferSpecies(name){
+  const n=name.toLowerCase();
+  if(n.includes("klamath")||n.includes("sacramento")||n.includes("san joaquin")) return ["Chinook Salmon","Coho Salmon","Steelhead Trout"];
+  if(n.includes("russian")||n.includes("san lorenzo")) return ["Coho Salmon","Steelhead Trout"];
+  if(n.includes("guadalupe")||n.includes("coyote")||n.includes("pajaro")||n.includes("santa ana")||n.includes("santa ynez")) return ["Steelhead Trout"];
+  if(n.includes("eel")) return ["Chinook Salmon","Steelhead Trout"];
+  return ["Chinook Salmon","Coho Salmon","Steelhead Trout"];
+}
+
+let names=Object.keys(atlas);
 let selected="";
 let mode="current";
 const riverTitle=document.getElementById("riverTitle");
@@ -2351,7 +2371,7 @@ function riverGraphic(name,active=false){
 function drawContextRivers(){
   riversLayer.removeAll();
   riversGlow.removeAll();
-  names.forEach((name)=>{
+  names.filter((name)=>selectedSpecies==="All Species"||inferSpecies(name).includes(selectedSpecies)).forEach((name)=>{
     const r=atlas[name];
     const base={type:"simple-line",color:[88,184,232,.42],width:1.5,cap:"round",join:"round"};
     const glow={type:"simple-line",color:[222,247,255,.32],width:2.8,cap:"round",join:"round"};
@@ -2363,8 +2383,8 @@ function drawContextRivers(){
 
 function refreshSelectable(){
   selectLayer.removeAll();
-  names.forEach((name)=>selectLayer.add(riverGraphic(name,name===selected)));
-  legend.textContent=`Interactive river corridors: ${names.length} selectable segments statewide.`;
+  names.filter((name)=>selectedSpecies==="All Species"||inferSpecies(name).includes(selectedSpecies)).forEach((name)=>selectLayer.add(riverGraphic(name,name===selected)));
+  const visible=names.filter((name)=>selectedSpecies==="All Species"||inferSpecies(name).includes(selectedSpecies)).length; legend.textContent=`Interactive river corridors: ${visible} visible segments (${selectedSpecies}).`;
 }
 
 function stats(name,year){
@@ -2396,6 +2416,12 @@ function drawRange(year){
   stats(selected,year);
 }
 
+function renderSpeciesFilters(){
+  const wrap=document.getElementById("speciesFilters");
+  wrap.innerHTML="";
+  speciesCatalog.forEach((sp)=>{const b=document.createElement("button");b.className="sp-pill"+(sp===selectedSpecies?" active":"");b.textContent=sp;b.onclick=()=>{selectedSpecies=sp;renderSpeciesFilters();refreshSelectable();drawContextRivers();if(selected && !(selectedSpecies==="All Species"||inferSpecies(selected).includes(selectedSpecies))){selected="";}drawRange(+yearSlider.value);};wrap.appendChild(b);});
+}
+
 yearSlider.oninput=()=>{yearLabel.textContent=yearSlider.value;drawRange(+yearSlider.value);};
 function setMode(m,btn){mode=m;[histBtn,curBtn,declineBtn].forEach((b)=>b.classList.remove("active"));btn.classList.add("active");drawRange(+yearSlider.value);}
 histBtn.onclick=()=>setMode("historical",histBtn);
@@ -2414,6 +2440,8 @@ view.on("click",async(e)=>{
   if(pick){selected=pick.graphic.attributes.name;refreshSelectable();stats(selected,+yearSlider.value);return;}
 });
 
+setTimeout(()=>{document.getElementById("loading")?.classList.add("hide");setTimeout(()=>document.getElementById("loading")?.remove(),400);},1600);
+
 view.when(async()=>{
   boundary.add(new Graphic({geometry:{type:"polygon",rings:[caLandBorder],spatialReference:{wkid:4326}},symbol:{type:"simple-fill",color:[0,0,0,0],outline:{color:[255,255,255,.95],width:2.4}}}));
   boundary.add(new Graphic({geometry:{type:"polygon",rings:[[[-124.8,46],[-116.2,46],[-116.2,42],[-124.5,42],[-124.8,46]]],spatialReference:{wkid:4326}},symbol:{type:"simple-fill",color:[245,242,235,.40],outline:{color:[255,255,255,.28],width:1}}}));
@@ -2422,6 +2450,7 @@ view.when(async()=>{
   view.goTo({target:{type:"polygon",rings:[caLandBorder],spatialReference:{wkid:4326}},scale:7600000,heading:338,tilt:63},{duration:0});
   drawContextRivers();
   selected=names[0];
+  renderSpeciesFilters();
   refreshSelectable();
   yearLabel.textContent=yearSlider.value;
   drawRange(+yearSlider.value);
