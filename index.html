@@ -3,162 +3,114 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Pacific Salmon & Trout — California Range Atlas</title>
+  <title>Pacific Salmon & Trout — California River Range Atlas</title>
   <link rel="stylesheet" href="https://js.arcgis.com/4.30/esri/themes/light/main.css" />
   <style>
-    html, body, #viewDiv { margin:0; width:100%; height:100%; overflow:hidden; background:#e9eff1; font-family:Inter,system-ui,sans-serif; }
+    html, body, #viewDiv { margin:0; width:100%; height:100%; overflow:hidden; font-family:Inter,system-ui,sans-serif; background:#edf4f7; }
     #viewDiv { position:fixed; inset:0; }
-    .overlay { position:fixed; inset:0; pointer-events:none; z-index:2; background:radial-gradient(120vmax 90vmax at 18% 62%,rgba(179,231,255,.34),rgba(179,231,255,.08) 40%,rgba(255,255,255,.10) 100%),linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.02)); mix-blend-mode:screen; }
-    .topbar, .sidebar, .bottombar { position:fixed; z-index:10; backdrop-filter: blur(6px); background:rgba(250,250,248,.78); border:1px solid rgba(255,255,255,.85); box-shadow:0 10px 30px rgba(30,38,48,.12); }
-    .topbar { top:14px; left:14px; padding:14px 16px; border-radius:12px; max-width:720px; }
-    .eyebrow { font: 500 12px/1.3 "IBM Plex Mono", ui-monospace, monospace; letter-spacing:.08em; color:#72787f; text-transform:uppercase; }
-    h1 { margin:4px 0 8px; font: 500 47px/1.0 Georgia, serif; color:#2a3442; }
-    h1 span { color:#2875c6; font-style:italic; }
-    .sub { font-size:12px; color:#667684; letter-spacing:.05em; text-transform:uppercase; }
+    .overlay{ position:fixed; inset:0; pointer-events:none; z-index:2; background:
+      radial-gradient(130vmax 90vmax at 20% 60%, rgba(186,231,255,.34), rgba(186,231,255,.07) 42%, rgba(255,255,255,.12) 100%),
+      linear-gradient(180deg, rgba(255,255,255,.24), rgba(255,255,255,.04)); mix-blend-mode:screen; }
+    .panel{ position:fixed; z-index:10; backdrop-filter: blur(7px); background:rgba(249,250,247,.80); border:1px solid rgba(255,255,255,.88); box-shadow:0 12px 34px rgba(30,38,48,.14); border-radius:14px; }
+    .top{ left:14px; top:14px; padding:12px 16px; max-width:760px; }
+    .eyebrow{ font:500 12px/1.2 ui-monospace,monospace; letter-spacing:.08em; color:#727b84; text-transform:uppercase; }
+    h1{ margin:5px 0 7px; font:500 56px/1 Georgia,serif; color:#2b3542; }
+    h1 span{ color:#2d78d6; font-style:italic; }
+    .sub{ font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:#62707e; }
 
-    .sidebar { top:14px; right:14px; width:300px; max-height:calc(100vh - 28px); overflow:auto; border-radius:12px; padding:14px; }
-    .side-title { font:500 38px/1.0 Georgia, serif; color:#313842; margin:0; }
-    .side-sub { margin:3px 0 12px; color:#6d757d; font: 500 11px/1.2 "IBM Plex Mono", monospace; letter-spacing:.08em; text-transform:uppercase; }
-    .kpi { display:flex; justify-content:space-between; padding:10px 0; border-top:1px solid rgba(98,106,114,.14); }
-    .kpi span { font: 600 11px/1.2 "IBM Plex Mono", monospace; color:#79848e; letter-spacing:.08em; text-transform:uppercase; }
-    .kpi b { font: 500 34px/1 Georgia, serif; color:#2f91c9; }
-    .kpi b.bad { color:#c86666; }
+    .side{ right:14px; top:14px; width:340px; max-height:calc(100vh - 28px); overflow:auto; padding:14px; }
+    .side h2{ margin:0; font:500 52px/1 Georgia,serif; color:#313a46; }
+    .meta{ margin:2px 0 11px; color:#727b84; font:500 11px/1.2 ui-monospace,monospace; text-transform:uppercase; letter-spacing:.08em; }
+    .kpi{ border-top:1px solid rgba(100,110,120,.16); display:flex; justify-content:space-between; padding:10px 0; }
+    .kpi span{ font:600 11px/1 ui-monospace,monospace; color:#778390; letter-spacing:.07em; text-transform:uppercase; }
+    .kpi b{ font:500 34px/1 Georgia,serif; color:#2a85d0; }
+    .kpi b.bad{ color:#c86060; }
+    .chips{ display:flex; flex-wrap:wrap; gap:7px; margin:9px 0 12px; }
+    .chip{ border:1px solid #9cc4e4; border-radius:999px; padding:4px 8px; font-size:11px; color:#295f8a; background:#e7f4ff; }
+    .story{ border-top:1px solid rgba(100,110,120,.16); padding-top:10px; margin-top:6px; }
+    .story h3{ margin:0 0 5px; font:700 13px/1.2 Inter,sans-serif; letter-spacing:.02em; color:#2f3944; }
+    .story p{ margin:0 0 8px; color:#3f4b57; line-height:1.34; font-size:13px; }
+    .sources{ margin:0; padding-left:18px; color:#5a6673; font-size:12px; }
 
-    .chips { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 14px; }
-    .chip { border:1px solid #9ec5df; border-radius:999px; background:#e7f4ff; color:#2a648d; padding:4px 9px; font-size:11px; }
-
-    .bottombar { left:50%; transform:translateX(-50%); bottom:16px; border-radius:12px; padding:9px; display:flex; gap:8px; align-items:center; }
-    button { border:1px solid rgba(88,101,112,.24); background:#f6f7f5; color:#3a4550; font:500 12px/1 Inter,sans-serif; padding:7px 11px; border-radius:8px; cursor:pointer; }
-    button.active { background:#2f79da; color:white; border-color:#2f79da; }
-    .year { font:500 39px/1 Georgia,serif; color:#2f79da; margin-left:10px; min-width:66px; text-align:center; }
-    input[type="range"]{ width:260px; accent-color:#2f79da; }
+    .bottom{ left:50%; transform:translateX(-50%); bottom:16px; padding:9px; display:flex; align-items:center; gap:8px; }
+    button{ border:1px solid rgba(88,101,112,.28); background:#f7f8f6; color:#36414d; border-radius:8px; padding:7px 11px; cursor:pointer; font:500 12px/1 Inter,sans-serif; }
+    button.active{ background:#2d78d6; color:#fff; border-color:#2d78d6; }
+    .year{ margin-left:8px; min-width:76px; text-align:center; font:500 44px/1 Georgia,serif; color:#2d78d6; }
+    input[type=range]{ width:270px; accent-color:#2d78d6; }
   </style>
 </head>
 <body>
-<div id="viewDiv"></div>
-<div class="overlay"></div>
-<section class="topbar">
-  <div class="eyebrow">Oncorhynchus Decline Atlas — Pacific Northwest</div>
+<div id="viewDiv"></div><div class="overlay"></div>
+<section class="panel top">
+  <div class="eyebrow">Oncorhynchus Decline Atlas — California</div>
   <h1>Pacific <span>Salmon</span> &amp; Trout</h1>
-  <div class="sub">CA • OR • WA • 1700s–2024 • CDFW • NOAA Fisheries • Trout Unlimited</div>
+  <div class="sub">CA • 1700–2024 • NOAA Fisheries • CDFW • USGS • NMFS Recovery Plans</div>
 </section>
-<section class="sidebar">
-  <h2 class="side-title" id="basinTitle">Sacramento–San Joaquin</h2>
-  <div class="side-sub">Central Valley · California</div>
-
-  <div class="kpi"><span>Historical Peak</span><b>~6 million</b></div>
-  <div class="kpi"><span>Current Adults</span><b class="bad" id="adultsVal">~128,000</b></div>
-  <div class="kpi"><span>Habitat Loss</span><b class="bad">~80%</b></div>
-  <div class="kpi"><span>Accessible Miles</span><b style="color:#343b43">1,240 mi</b></div>
-
-  <div class="chips">
-    <span class="chip">Current Range</span>
-    <span class="chip">All Species</span>
-    <span class="chip">3D Terrain</span>
-    <span class="chip">Statewide Rivers</span>
-  </div>
-
-  <div style="font:500 11px/1.2 'IBM Plex Mono',monospace;color:#7a8289;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Data Layers</div>
-  <div class="chips">
-    <span class="chip">CDFW CMP</span><span class="chip">NOAA SR</span><span class="chip">PFMC 2023</span>
-  </div>
+<section class="panel side">
+  <h2 id="riverTitle">Select a River</h2>
+  <div class="meta" id="riverRegion">California • anadromous watersheds</div>
+  <div class="kpi"><span>Historical Peak</span><b id="histPeak">—</b></div>
+  <div class="kpi"><span>Current Adults</span><b class="bad" id="adultsVal">—</b></div>
+  <div class="kpi"><span>Estimated Decline</span><b class="bad" id="declineVal">—</b></div>
+  <div class="kpi"><span>Accessible Miles</span><b style="color:#343b43" id="milesVal">—</b></div>
+  <div class="chips"><span class="chip" id="modeChip">Current Range</span><span class="chip">3D Terrain</span><span class="chip">Statewide River Network</span></div>
+  <div class="story"><h3 id="storyTitle">Click a highlighted river corridor</h3><p id="storyText">Choose any major salmon/trout river to view a year-specific narrative, rough abundance estimate, decline context, and source references.</p><ul class="sources" id="sourceList"><li>NOAA Fisheries salmon status summaries.</li></ul></div>
 </section>
-
-<div class="bottombar">
-  <button id="histBtn">Historical Range</button>
-  <button id="curBtn" class="active">Current Range</button>
-  <button id="declineBtn">% Decline Map</button>
+<div class="panel bottom">
+  <button id="histBtn">Historical Range</button><button id="curBtn" class="active">Current Range</button><button id="declineBtn">% Decline Map</button>
   <input id="yearSlider" type="range" min="1700" max="2024" value="1850" />
   <div class="year" id="yearLabel">1850</div>
 </div>
-
 <script src="https://js.arcgis.com/4.30/"></script>
 <script>
-require([
-  "esri/Map","esri/views/SceneView","esri/layers/FeatureLayer","esri/layers/GraphicsLayer","esri/Graphic","esri/geometry/Polygon","esri/renderers/SimpleRenderer"
-], (Map, SceneView, FeatureLayer, GraphicsLayer, Graphic, Polygon, SimpleRenderer) => {
+require(["esri/Map","esri/views/SceneView","esri/layers/FeatureLayer","esri/layers/GraphicsLayer","esri/Graphic"],
+(Map,SceneView,FeatureLayer,GraphicsLayer,Graphic)=>{
+const map=new Map({basemap:"satellite",ground:"world-elevation"});
+const view=new SceneView({container:"viewDiv",map,qualityProfile:"high",viewingMode:"global",camera:{position:{longitude:-119.5,latitude:36.8,z:980000},heading:337,tilt:64},constraints:{altitude:{min:140000,max:3900000}},environment:{atmosphereEnabled:true,starsEnabled:false,lighting:{directShadowsEnabled:true,ambientOcclusionEnabled:true,date:new Date("2026-06-15T18:00:00Z")}}});
 
-  const caCoords = [[[-124.4096,42.0003],[-123.2333,42.0061],[-122.3789,42.0115],[-121.037,41.9954],[-120.0019,41.9942],[-120.0009,39.0002],[-119.9992,38.2146],[-118.7148,37.2361],[-117.4989,36.1123],[-114.6336,34.873],[-114.6349,34.2582],[-114.5352,33.9334],[-114.7214,33.4335],[-114.6616,33.0352],[-114.5249,32.7551],[-117.1278,32.5369],[-117.2468,32.6683],[-118.4106,33.7403],[-119.0019,34.462],[-120.4543,34.448],[-120.9126,34.9693],[-121.7979,36.294],[-122.5167,37.505],[-122.9346,38.1562],[-123.7138,39.3762],[-124.2116,40.8215],[-124.4096,42.0003]]];
+const rivers=new FeatureLayer({url:"https://services9.arcgis.com/RHVPKKiFTONKtxq3/ArcGIS/rest/services/USA_Rivers_and_Streams/FeatureServer/0",definitionExpression:"STATE_NAME='California' OR STATE_ABBR='CA'",outFields:["*"],popupEnabled:false,elevationInfo:{mode:"on-the-ground"},renderer:{type:"simple",symbol:{type:"simple-line",color:[92,189,235,.88],width:1.15,cap:"round",join:"round"}},blendMode:"screen",opacity:.92});
+const glow=rivers.clone(); glow.renderer={type:"simple",symbol:{type:"simple-line",color:[221,248,255,.6],width:.7,cap:"round",join:"round"}}; glow.blendMode="plus";
+map.addMany([rivers,glow]);
 
-  const map = new Map({ basemap:"satellite", ground:"world-elevation" });
-  const view = new SceneView({
-    container:"viewDiv", map, qualityProfile:"high", viewingMode:"global",
-    environment:{ atmosphereEnabled:true, starsEnabled:false, lighting:{ directShadowsEnabled:true, ambientOcclusionEnabled:true, date:new Date("2026-06-15T18:00:00Z") } },
-    camera:{ position:{longitude:-119.4, latitude:36.8, z:980000}, heading:340, tilt:60 },
-    constraints:{ altitude:{min:150000,max:3600000} }
-  });
+const stateLayer=new FeatureLayer({url:"https://services.arcgis.com/PwY9ZuZRDiM4pQ80/ArcGIS/rest/services/US_States_Generalized/FeatureServer/0",definitionExpression:"STATE_NAME IN ('California','Oregon','Nevada','Arizona')",outFields:["STATE_NAME"]});
+const stateFill=new GraphicsLayer(); map.add(stateFill);
+const rangeLayer=new GraphicsLayer({blendMode:"multiply",opacity:.82}); map.add(rangeLayer);
 
-  const fade = new GraphicsLayer(); map.add(fade);
-  [
-    [[-124.8,46],[-116.2,46],[-116.2,42],[-124.5,42],[-124.8,46]],
-    [[-120.1,42],[-114,42],[-114,35],[-114.6,35],[-118.7,37.2],[-120,39],[-120.1,42]],
-    [[-114.9,37],[-109,37],[-109,31.2],[-114.6,31.2],[-114.6,35],[-114.9,37]],
-    [[-117.6,32.55],[-113,32.55],[-113,28.5],[-117.6,28.5],[-117.6,32.55]]
-  ].forEach(r=>fade.add(new Graphic({geometry:new Polygon({rings:[r],spatialReference:{wkid:4326}}),symbol:{type:"simple-fill",color:[245,242,235,0.52],outline:{color:[255,255,255,.35],width:1}}})));
+const atlas={
+"Sacramento River":{region:"Central Valley",hist:2400000,miles:640,lines:["1700: spring/fall Chinook runs likely in the low millions before large dams.","1880: commercial harvest, mining sediment, and levees begin major declines.","2024: hatchery-influenced runs persist; wild stocks fragmented."],sources:["NOAA Fisheries Central Valley salmon ESU summaries","CDFW California Salmonid Stream Habitat Restoration Manual"]},
+"Klamath River":{region:"North Coast",hist:1200000,miles:423,lines:["1700: one of the west coast's largest Chinook/Coho systems.","1910: barriers and diversions reduced habitat connectivity.","2024: dam removals improve long-term access and recovery potential."],sources:["NOAA Fisheries Southern Oregon/Northern California Coast ESU","Klamath Basin restoration assessments"]},
+"Eel River":{region:"North Coast",hist:900000,miles:460,lines:["1700: exceptionally productive steelhead and Chinook watershed.","1964: flood + logging road failures caused heavy sediment impacts.","2024: localized recovery, still far below historical abundance."],sources:["CDFW anadromous watershed profiles","California Coastal Salmonid Monitoring Plan"]},
+"Russian River":{region:"North Coast",hist:350000,miles:210,lines:["1700: strong Coho and steelhead presence in tributary network.","1950: channel simplification and altered flow regimes accelerated decline.","2024: targeted reintroduction and habitat restoration continue."],sources:["NOAA Coho recovery strategy","Russian River watershed science reports"]},
+"Santa Ynez River":{region:"Central Coast",hist:90000,miles:110,lines:["1700: intermittent but significant steelhead migration during wet cycles.","1930: dams sharply constrained upstream passage.","2024: remnant runs depend on hydrology and passage actions."],sources:["NOAA South-Central California Coast steelhead DPS","CDFW coastal stream status"]},
+"Santa Ana River":{region:"Southern California",hist:60000,miles:96,lines:["1700: seasonal steelhead migration reached inland tributaries.","1950: urbanization and flood-control channels reduced habitat.","2024: mostly restoration-focused, with rare natural run years."],sources:["NOAA Southern California steelhead recovery planning","Regional watershed authority reports"]}
+};
 
-  fade.add(new Graphic({geometry:new Polygon({rings:caCoords,spatialReference:{wkid:4326}}),symbol:{type:"simple-fill",color:[0,0,0,0],outline:{color:[255,255,255,0.95],width:2.4}}}));
+const fallback=atlas["Sacramento River"];
+let mode="current",selectedName="";
+const yearEl=document.getElementById("yearSlider"),yearLabel=document.getElementById("yearLabel");
+function setActive(id){["histBtn","curBtn","declineBtn"].forEach(b=>document.getElementById(b).classList.toggle("active",b===id)); document.getElementById("modeChip").textContent=document.getElementById(id).textContent;}
+function interpolateAdults(peak,year){const t=(year-1700)/(2024-1700); return Math.max(1200,Math.round(peak*(1-(0.92*t))));}
+function fillRiverCard(name,year){const d=atlas[name]||fallback,ad=interpolateAdults(d.hist,year),decl=Math.round((1-ad/d.hist)*100); document.getElementById("riverTitle").textContent=name||"Select a River"; document.getElementById("riverRegion").textContent=`${d.region} · California`; document.getElementById("histPeak").textContent=`~${d.hist.toLocaleString()}`; document.getElementById("adultsVal").textContent=`~${ad.toLocaleString()}`; document.getElementById("declineVal").textContent=`~${decl}%`; document.getElementById("milesVal").textContent=`${Math.round(d.miles*(1-decl/170))} mi`; const idx=year<1850?0:year<1980?1:2; document.getElementById("storyTitle").textContent=`${name||"Selected River"} • ${year}`; document.getElementById("storyText").textContent=d.lines[idx]; document.getElementById("sourceList").innerHTML=d.sources.map(s=>`<li>${s}</li>`).join("");}
 
-  const rangeLayer = new GraphicsLayer({blendMode:"multiply",opacity:.82}); map.add(rangeLayer);
+function drawRanges(year){rangeLayer.removeAll(); const t=(year-1700)/324;
+const polys={historical:[[-124.3,41.95],[-123.4,41.8],[-122.4,41.4],[-121.5,40.4],[-121.1,39.5],[-121.3,38.8],[-122.0,37.9],[-122.4,37.2],[-121.7,36.2],[-120.9,35.2],[-119.8,34.1],[-118.8,33.1],[-117.7,32.72],[-117.2,33.42],[-118.2,34.7],[-119.3,35.6],[-120.5,36.6],[-121.5,37.7],[-122.5,38.8],[-123.5,40.2],[-124.3,41.95]],current:[[-124.2,41.9],[-123.5,41.75],[-122.8,41.25],[-122.0,40.7],[-121.6,39.95],[-121.8,39.2],[-122.3,38.6],[-122.35,37.95],[-121.95,37.2],[-121.5,36.4],[-120.9,35.6],[-120.1,34.8],[-119.3,34.0],[-118.4,33.3],[-117.8,32.9],[-117.4,33.4],[-118.4,34.5],[-119.2,35.3],[-120.2,36.3],[-121.1,37.1],[-122.0,38.2],[-123.0,39.5],[-124.2,41.9]]};
+const sel=mode==="historical"?polys.historical:polys.current; rangeLayer.add(new Graphic({geometry:{type:"polygon",rings:[sel],spatialReference:{wkid:4326}},symbol:{type:"simple-fill",color:[61,166,222,.24],outline:{color:[230,248,255,.7],width:1.2}}}));
+if(mode==="decline"){rangeLayer.add(new Graphic({geometry:{type:"polygon",rings:[polys.current.map(([x,y],i)=>[x+(i%4?0.08:0),y-0.07])],spatialReference:{wkid:4326}},symbol:{type:"simple-fill",color:[210,87,87,.30],outline:{color:[248,220,220,.7],width:1.1}}}));}
+fillRiverCard(selectedName,year);
+}
 
-  const statewideRivers = new FeatureLayer({
-    url:"https://services9.arcgis.com/RHVPKKiFTONKtxq3/ArcGIS/rest/services/USA_Rivers_and_Streams/FeatureServer/0",
-    definitionExpression:"STATE_NAME = 'California' OR STATE_ABBR = 'CA'",
-    elevationInfo:{mode:"on-the-ground"},
-    renderer:new SimpleRenderer({symbol:{type:"simple-line",color:[85,178,228,.75],width:1.2,cap:"round",join:"round"}}),
-    blendMode:"screen", opacity:.86
-  });
-  const statewideRiversGlow = statewideRivers.clone();
-  statewideRiversGlow.renderer = new SimpleRenderer({symbol:{type:"simple-line",color:[212,245,255,.64],width:.6,cap:"round",join:"round"}});
-  statewideRiversGlow.blendMode = "plus";
-  map.addMany([statewideRivers, statewideRiversGlow]);
+yearEl.addEventListener("input",()=>{yearLabel.textContent=yearEl.value;drawRanges(+yearEl.value);});
+document.getElementById("histBtn").onclick=()=>{mode="historical";setActive("histBtn");drawRanges(+yearEl.value);};
+document.getElementById("curBtn").onclick=()=>{mode="current";setActive("curBtn");drawRanges(+yearEl.value);};
+document.getElementById("declineBtn").onclick=()=>{mode="decline";setActive("declineBtn");drawRanges(+yearEl.value);};
 
-  function rangeSymbol(color, outline=[255,255,255,.45]) {
-    return { type:"simple-fill", color, outline:{color:outline,width:1} };
-  }
+view.on("click", async (event)=>{ const hit=await view.hitTest(event); const r=hit.results.find(x=>x.graphic?.layer===rivers||x.graphic?.layer===glow); if(!r) return; const a=r.graphic.attributes||{}; const raw=(a.NAME||a.GNIS_NAME||a.STREAM_NAME||a.RIVER_NAME||a.FULL_NAME||"").trim(); const name=Object.keys(atlas).find(k=>raw.toLowerCase().includes(k.split(" ")[0].toLowerCase()))||raw||"Sacramento River"; selectedName=name; fillRiverCard(selectedName,+yearEl.value); });
 
-  function drawRanges(year, mode){
-    rangeLayer.removeAll();
-    const t=(year-1700)/(2024-1700);
-    const northPush=0.4*t;
-    const historic=[[-124.2,41.9],[-123.2,41.8],[-122.5,41.4],[-122.0,40.8],[-121.5,40.2],[-121.0,39.6],[-121.2,38.7],[-121.9,37.9],[-122.4,37.4],[-122.1,36.6],[-121.5,35.9],[-120.7,35.0],[-120.2,34.4],[-119.5,33.7],[-118.7,33.1],[-117.9,32.8],[-117.4,32.7],[-117.2,33.3],[-117.5,34.0],[-118.3,34.7],[-119.2,35.3],[-120.3,36.0],[-121.1,36.8],[-122.2,37.6],[-123.1,38.9],[-123.8,40.0],[-124.1,41.1],[-124.2,41.9]];
-    const current=historic.map(([x,y],i)=>[x+((i%4===0)?0.12:0), y+(i<8?northPush:0)-((i>14)?0.08:0)]);
-
-    const s=[
-      {name:"Chinook", hist:historic, cur:current, col:[41,150,211,.26]},
-      {name:"Coho", hist:historic.map(([x,y])=>[x-0.22,y+0.16]), cur:current.map(([x,y])=>[x-0.18,y+0.28]), col:[55,180,160,.24]},
-      {name:"Steelhead", hist:historic.map(([x,y])=>[x+0.16,y-0.08]), cur:current.map(([x,y])=>[x+0.22,y+0.05]), col:[74,132,236,.22]}
-    ];
-
-    s.forEach(sp=>{
-      const poly = new Polygon({rings:[mode==='historical'?sp.hist:sp.cur], spatialReference:{wkid:4326}});
-      rangeLayer.add(new Graphic({geometry:poly, symbol:rangeSymbol(sp.col)}));
-    });
-
-    if(mode==='decline'){
-      const dec = new Polygon({rings:[current.map(([x,y],i)=>[x+((i%3===0)?0.08:0),y-0.03])],spatialReference:{wkid:4326}});
-      rangeLayer.add(new Graphic({geometry:dec,symbol:rangeSymbol([216,91,91,.30],[240,205,205,.55])}));
-    }
-
-    const adults = Math.max(62000, Math.round(6000000*(1-(0.88*t))));
-    document.getElementById('adultsVal').textContent = `~${adults.toLocaleString()}`;
-    document.getElementById('basinTitle').textContent = mode==='historical' ? 'Historic California Basins' : mode==='decline' ? 'Statewide Habitat Decline' : 'Sacramento–San Joaquin';
-  }
-
-  const slider=document.getElementById('yearSlider');
-  const yearLabel=document.getElementById('yearLabel');
-  let mode='current';
-  function refresh(){const y=+slider.value;yearLabel.textContent=y;drawRanges(y,mode);} 
-  slider.addEventListener('input',refresh);
-
-  document.getElementById('histBtn').onclick=()=>{mode='historical';setActive('histBtn');refresh();};
-  document.getElementById('curBtn').onclick=()=>{mode='current';setActive('curBtn');refresh();};
-  document.getElementById('declineBtn').onclick=()=>{mode='decline';setActive('declineBtn');refresh();};
-  function setActive(id){['histBtn','curBtn','declineBtn'].forEach(b=>document.getElementById(b).classList.toggle('active',b===id));}
-
-  view.when(()=>{
-    view.goTo({target:new Polygon({rings:caCoords,spatialReference:{wkid:4326}}),heading:340,tilt:60,scale:7600000},{duration:0});
-    refresh();
-  });
+view.when(async ()=>{
+  const q=stateLayer.createQuery(); q.where="STATE_NAME IN ('California','Oregon','Nevada','Arizona')"; q.returnGeometry=true; q.outFields=["STATE_NAME"]; const fs=await stateLayer.queryFeatures(q);
+  fs.features.forEach(f=>{ const s=f.attributes.STATE_NAME; const isCA=s==="California"; stateFill.add(new Graphic({geometry:f.geometry,symbol:{type:"simple-fill",color:isCA?[0,0,0,0]:[245,242,235,.47],outline:{color:isCA?[255,255,255,.95]:[255,255,255,.30],width:isCA?2.5:1}}})); if(isCA){ view.goTo({target:f.geometry,tilt:63,heading:338,scale:7600000},{duration:0}); }});
+  yearLabel.textContent=yearEl.value; drawRanges(+yearEl.value);
+});
 });
 </script>
 </body>
