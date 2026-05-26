@@ -65,14 +65,11 @@
 <div class="panel bottom"><button id="histBtn">Historical Range</button><button id="curBtn" class="active">Current Range</button><button id="declineBtn">% Decline Map</button><input id="yearSlider" type="range" min="1700" max="2024" value="1850"/><div class="year" id="yearLabel">1850</div></div>
 <script src="https://js.arcgis.com/4.30/"></script>
 <script>
-require(["esri/Map","esri/views/SceneView","esri/layers/FeatureLayer","esri/layers/GraphicsLayer","esri/Graphic"],(Map,SceneView,FeatureLayer,GraphicsLayer,Graphic)=>{
+require(["esri/Map","esri/views/SceneView","esri/layers/GraphicsLayer","esri/Graphic"],(Map,SceneView,GraphicsLayer,Graphic)=>{
 const map=new Map({basemap:"satellite",ground:"world-elevation"});
 const view=new SceneView({container:"viewDiv",map,qualityProfile:"high",viewingMode:"global",camera:{position:{longitude:-119.3,latitude:36.8,z:980000},heading:338,tilt:64},constraints:{altitude:{min:140000,max:3900000}},environment:{atmosphereEnabled:true,starsEnabled:false,lighting:{directShadowsEnabled:true,ambientOcclusionEnabled:true,date:new Date("2026-06-15T18:00:00Z")}}});
-const stateLayer=new FeatureLayer({url:"https://services.arcgis.com/PwY9ZuZRDiM4pQ80/ArcGIS/rest/services/US_States_Generalized/FeatureServer/0",definitionExpression:"STATE_NAME IN ('California','Oregon','Nevada','Arizona')",outFields:["STATE_NAME"]});
-const riversLayer=new FeatureLayer({url:"https://services9.arcgis.com/RHVPKKiFTONKtxq3/ArcGIS/rest/services/USA_Rivers_and_Streams/FeatureServer/0",definitionExpression:"STATE_NAME='California' OR STATE_ABBR='CA'",outFields:["*"],popupEnabled:false,elevationInfo:{mode:"on-the-ground"},renderer:{type:"simple",symbol:{type:"simple-line",color:[88,184,232,.78],width:1.1,cap:"round",join:"round"}},blendMode:"screen",opacity:.9});
-const riversGlow=riversLayer.clone();
-riversGlow.renderer={type:"simple",symbol:{type:"simple-line",color:[222,247,255,.58],width:.65}};
-riversGlow.blendMode="plus";
+const riversLayer=new GraphicsLayer();
+const riversGlow=new GraphicsLayer({blendMode:"plus",opacity:.8});
 const boundary=new GraphicsLayer();
 const ranges=new GraphicsLayer({blendMode:"multiply",opacity:.82});
 const selectLayer=new GraphicsLayer();
@@ -2350,6 +2347,20 @@ function riverGraphic(name,active=false){
   });
 }
 
+
+function drawContextRivers(){
+  riversLayer.removeAll();
+  riversGlow.removeAll();
+  names.forEach((name)=>{
+    const r=atlas[name];
+    const base={type:"simple-line",color:[88,184,232,.42],width:1.5,cap:"round",join:"round"};
+    const glow={type:"simple-line",color:[222,247,255,.32],width:2.8,cap:"round",join:"round"};
+    const g={geometry:{type:"polyline",paths:[r.line],spatialReference:{wkid:4326}},attributes:{name}};
+    riversLayer.add(new Graphic({...g,symbol:base}));
+    riversGlow.add(new Graphic({...g,symbol:glow}));
+  });
+}
+
 function refreshSelectable(){
   selectLayer.removeAll();
   names.forEach((name)=>selectLayer.add(riverGraphic(name,name===selected)));
@@ -2405,18 +2416,11 @@ view.on("click",async(e)=>{
 
 view.when(async()=>{
   boundary.add(new Graphic({geometry:{type:"polygon",rings:[caLandBorder],spatialReference:{wkid:4326}},symbol:{type:"simple-fill",color:[0,0,0,0],outline:{color:[255,255,255,.95],width:2.4}}}));
-  const q=stateLayer.createQuery();
-  q.where="STATE_NAME IN ('California','Oregon','Nevada','Arizona')";
-  q.returnGeometry=true;
-  q.outFields=["STATE_NAME"];
-  const fs=await stateLayer.queryFeatures(q);
-  fs.features.forEach((f)=>{
-    if(f.attributes.STATE_NAME!=="California"){
-      boundary.add(new Graphic({geometry:f.geometry,symbol:{type:"simple-fill",color:[245,242,235,.45],outline:{color:[255,255,255,.30],width:1}}}));
-    } else {
-      view.goTo({target:f.geometry,scale:7600000,heading:338,tilt:63},{duration:0});
-    }
-  });
+  boundary.add(new Graphic({geometry:{type:"polygon",rings:[[[-124.8,46],[-116.2,46],[-116.2,42],[-124.5,42],[-124.8,46]]],spatialReference:{wkid:4326}},symbol:{type:"simple-fill",color:[245,242,235,.40],outline:{color:[255,255,255,.28],width:1}}}));
+  boundary.add(new Graphic({geometry:{type:"polygon",rings:[[[-120.1,42],[-114,42],[-114,35],[-114.6,35],[-118.7,37.2],[-120,39],[-120.1,42]]],spatialReference:{wkid:4326}},symbol:{type:"simple-fill",color:[245,242,235,.40],outline:{color:[255,255,255,.28],width:1}}}));
+  boundary.add(new Graphic({geometry:{type:"polygon",rings:[[[-114.9,37],[-109,37],[-109,31.2],[-114.6,31.2],[-114.6,35],[-114.9,37]]],spatialReference:{wkid:4326}},symbol:{type:"simple-fill",color:[245,242,235,.36],outline:{color:[255,255,255,.24],width:1}}}));
+  view.goTo({target:{type:"polygon",rings:[caLandBorder],spatialReference:{wkid:4326}},scale:7600000,heading:338,tilt:63},{duration:0});
+  drawContextRivers();
   selected=names[0];
   refreshSelectable();
   yearLabel.textContent=yearSlider.value;
