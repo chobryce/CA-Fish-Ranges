@@ -1,1 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>California Relief Atlas (Detailed 3D Look)</title>
+  <style>
+    :root {
+      --bg: #eef2f2;
+      --panel: rgba(255,255,255,0.72);
+      --line: rgba(75,88,100,0.35);
+      --text: #26323d;
+      --muted: #5f6c76;
+      --accent: #2f8cc7;
+    }
+    html, body { margin:0; height:100%; background:var(--bg); color:var(--text); font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; overflow:hidden; }
+    #wrap { position:relative; width:100%; height:100%; }
+    canvas { position:absolute; inset:0; width:100%; height:100%; }
+    .hud {
+      position:absolute; left:16px; top:16px; padding:12px 14px; background:var(--panel);
+      border:1px solid rgba(255,255,255,0.8); border-radius:10px; backdrop-filter: blur(8px);
+      box-shadow: 0 10px 30px rgba(28,38,48,0.09);
+      max-width: 520px;
+    }
+    h1 { margin:0 0 4px; font-size:18px; letter-spacing:.03em; }
+    .sub { font-size:12px; color:var(--muted); line-height:1.3; }
+    .pill { display:inline-block; margin-top:7px; font-size:11px; color:#214157; background:#d8edf8; border:1px solid #9bcbe4; border-radius:999px; padding:3px 8px; }
+  </style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="map"></canvas>
+  <div class="hud">
+    <h1>California Terrain & River Systems</h1>
+    <div class="sub">Bright detailed relief style • Entire CA visible at max zoom • Neighbor states softly faded • Major rivers from San Diego to Crescent City included.</div>
+    <div class="pill">Drag to pan • Wheel / pinch to zoom</div>
+  </div>
+</div>
+<script>
+(() => {
+  const canvas = document.getElementById('map');
+  const ctx = canvas.getContext('2d');
+  const DPR = () => Math.max(1, Math.min(2, devicePixelRatio || 1));
 
+  let view = { x:0.56, y:0.57, zoom:1.0, minZoom:0.85, maxZoom:4.2 };
+
+  const caPoly = [
+    [0.34,0.16],[0.56,0.17],[0.55,0.40],[0.77,0.75],[0.68,0.90],[0.43,0.83],[0.30,0.34]
+  ];
+
+  const rivers = [
+    [[0.51,0.17],[0.50,0.26],[0.49,0.33],[0.48,0.41],[0.47,0.50],[0.46,0.60],[0.45,0.68],[0.44,0.79]], // Sacramento
+    [[0.53,0.42],[0.52,0.47],[0.50,0.54],[0.49,0.62],[0.48,0.72]], // San Joaquin
+    [[0.49,0.40],[0.48,0.43],[0.47,0.46],[0.46,0.49]], // delta branches
+    [[0.31,0.32],[0.34,0.37],[0.36,0.44],[0.39,0.53]], // Russian
+    [[0.30,0.20],[0.31,0.27],[0.32,0.36]], // Smith/Klamath coast trunk
+    [[0.37,0.22],[0.42,0.24],[0.47,0.29]], // Klamath
+    [[0.41,0.24],[0.44,0.28],[0.45,0.35]], // Trinity
+    [[0.29,0.56],[0.33,0.60],[0.38,0.62]], // Salinas
+    [[0.39,0.68],[0.43,0.69],[0.49,0.70]], // Kern/Tulare historical basin
+    [[0.64,0.60],[0.69,0.61],[0.74,0.63]], // Colorado reach near border
+    [[0.36,0.77],[0.41,0.76],[0.47,0.74]], // Santa Ana / LA basin feeds
+    [[0.31,0.79],[0.34,0.77],[0.37,0.74]], // San Diego rivers
+    [[0.45,0.51],[0.52,0.48],[0.57,0.43]], // American
+    [[0.45,0.45],[0.53,0.41],[0.58,0.35]], // Feather/Yuba
+    [[0.47,0.58],[0.56,0.55],[0.62,0.51]], // Merced/Tuolumne/Stanislaus
+    [[0.48,0.64],[0.58,0.61],[0.65,0.56]], // Kings/Kern east-west
+    [[0.39,0.44],[0.44,0.48],[0.49,0.52]], // Bay tributary complex
+  ];
+
+  function resize(){ canvas.width=innerWidth*DPR(); canvas.height=innerHeight*DPR(); draw(); }
+  addEventListener('resize', resize);
+
+  function noise(x,y){
+    return Math.sin(x*7.7+y*9.3)*0.5 + Math.sin(x*21.1-y*15.8)*0.25 + Math.sin((x+y)*55)*0.1;
+  }
+
+  function pointInPoly(p, poly){
+    let c=false; for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+      const xi=poly[i][0], yi=poly[i][1], xj=poly[j][0], yj=poly[j][1];
+      const intersect=((yi>p[1])!==(yj>p[1]))&&(p[0]<(xj-xi)*(p[1]-yi)/(yj-yi+1e-8)+xi); if(intersect)c=!c;
+    } return c;
+  }
+
+  function toScreen(nx, ny){
+    const scale = Math.min(canvas.width,canvas.height) * view.zoom;
+    const sx = (nx - view.x) * scale + canvas.width * 0.5;
+    const sy = (ny - view.y) * scale + canvas.height * 0.52;
+    return [sx, sy];
+  }
+
+  function drawRelief(){
+    const w = canvas.width, h = canvas.height;
+    const step = Math.max(2, Math.floor(4 / view.zoom));
+    for(let y=0;y<h;y+=step){
+      for(let x=0;x<w;x+=step){
+        const scale = Math.min(w,h) * view.zoom;
+        const nx = ((x - w*0.5)/(scale)) + view.x;
+        const ny = ((y - h*0.52)/(scale)) + view.y;
+        const ca = pointInPoly([nx,ny], caPoly);
+        const n = noise(nx,ny);
+        const sierra = Math.max(0, 1 - Math.abs(nx-0.58)*8) * Math.max(0, 1 - Math.abs(ny-0.54)*2.2);
+        const coastRange = Math.max(0, 1 - Math.abs(nx-0.38)*9) * Math.max(0, 1 - Math.abs(ny-0.42)*1.6);
+        const cascades = Math.max(0, 1 - Math.abs(nx-0.48)*8) * Math.max(0, 1 - Math.abs(ny-0.22)*3.5);
+        const desert = Math.max(0, 1 - Math.abs(nx-0.67)*5) * Math.max(0, 1 - Math.abs(ny-0.73)*2.4);
+        let elev = n*0.35 + sierra*1.8 + coastRange*1.0 + cascades*1.2 - desert*0.4;
+
+        const gradx = noise(nx+0.002,ny)-noise(nx-0.002,ny);
+        const grady = noise(nx,ny+0.002)-noise(nx,ny-0.002);
+        const shade = (gradx*0.9 - grady*1.4);
+
+        let r,g,b,a=255;
+        if(ca){
+          const v = Math.min(1, Math.max(0, (elev+0.45)/2.3));
+          const bright = 1.25;
+          r = (214 + v*45 + shade*95) * bright;
+          g = (198 + v*65 + shade*105) * bright;
+          b = (152 + v*55 + shade*85) * bright;
+          if(elev>1.25){ r+=32; g+=30; b+=28; }
+        } else {
+          const dist = Math.min(1, Math.max(0, Math.hypot(nx-0.53, ny-0.54)*1.2));
+          const fade = 1 - Math.max(0, 0.65 - dist);
+          r = 226 + shade*30; g = 224 + shade*28; b = 218 + shade*26;
+          a = 255 * Math.min(1, 0.95 + fade*0.15);
+        }
+        ctx.fillStyle = `rgba(${Math.max(0,Math.min(255,r))|0},${Math.max(0,Math.min(255,g))|0},${Math.max(0,Math.min(255,b))|0},${a/255})`;
+        ctx.fillRect(x,y,step,step);
+      }
+    }
+  }
+
+  function drawWater(){
+    const grad = ctx.createRadialGradient(canvas.width*0.17,canvas.height*0.63,40,canvas.width*0.18,canvas.height*0.62,canvas.height*0.6);
+    grad.addColorStop(0,'rgba(167,224,243,.85)'); grad.addColorStop(.7,'rgba(146,207,233,.65)'); grad.addColorStop(1,'rgba(132,193,223,.3)');
+    ctx.fillStyle=grad; ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    ctx.save();
+    for(const line of rivers){
+      ctx.beginPath();
+      line.forEach((p,i)=>{ const [x,y]=toScreen(p[0],p[1]); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);});
+      ctx.lineWidth = Math.max(1, 2.7*view.zoom);
+      ctx.strokeStyle = 'rgba(113,181,219,0.74)'; ctx.stroke();
+      ctx.lineWidth = Math.max(.6, 1.35*view.zoom); ctx.strokeStyle='rgba(198,236,252,0.78)'; ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawBorders(){
+    ctx.beginPath(); caPoly.forEach((p,i)=>{ const [x,y]=toScreen(p[0],p[1]); if(!i)ctx.moveTo(x,y); else ctx.lineTo(x,y);}); ctx.closePath();
+    ctx.strokeStyle='rgba(240,244,247,0.95)'; ctx.lineWidth=Math.max(1.4,2.2*view.zoom); ctx.stroke();
+
+    const labels = [['OREGON',0.50,0.12],['NEVADA',0.66,0.42],['ARIZONA',0.73,0.73],['PACIFIC OCEAN',0.18,0.66]];
+    ctx.fillStyle='rgba(79,93,104,0.65)'; ctx.font=`${Math.max(11,14*view.zoom)}px Georgia, serif`; ctx.textAlign='center';
+    labels.forEach(([t,x,y])=>{const s=toScreen(x,y);ctx.fillText(t,s[0],s[1]);});
+  }
+
+  function draw(){
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    drawRelief();
+    drawWater();
+    drawBorders();
+  }
+
+  let dragging=false,lastX=0,lastY=0;
+  canvas.addEventListener('pointerdown',e=>{dragging=true;lastX=e.clientX;lastY=e.clientY;canvas.setPointerCapture(e.pointerId);});
+  canvas.addEventListener('pointermove',e=>{if(!dragging)return; const dx=e.clientX-lastX,dy=e.clientY-lastY; lastX=e.clientX;lastY=e.clientY; const scale=Math.min(canvas.width,canvas.height)*view.zoom; view.x-=dx/scale; view.y-=dy/scale; draw();});
+  canvas.addEventListener('pointerup',()=>dragging=false);
+  canvas.addEventListener('wheel',e=>{e.preventDefault(); const old=view.zoom; view.zoom*=Math.exp(-e.deltaY*0.0012); view.zoom=Math.max(view.minZoom,Math.min(view.maxZoom,view.zoom)); if(Math.abs(old-view.zoom)>1e-4)draw();},{passive:false});
+
+  resize();
+})();
+</script>
+</body>
+</html>
