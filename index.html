@@ -1,183 +1,165 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>California 3D Satellite Relief Atlas</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pacific Salmon & Trout — California Range Atlas</title>
   <link rel="stylesheet" href="https://js.arcgis.com/4.30/esri/themes/light/main.css" />
   <style>
-    html, body, #viewDiv { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #e9eff1; }
-    #viewDiv { position: fixed; inset: 0; }
+    html, body, #viewDiv { margin:0; width:100%; height:100%; overflow:hidden; background:#e9eff1; font-family:Inter,system-ui,sans-serif; }
+    #viewDiv { position:fixed; inset:0; }
+    .overlay { position:fixed; inset:0; pointer-events:none; z-index:2; background:radial-gradient(120vmax 90vmax at 18% 62%,rgba(179,231,255,.34),rgba(179,231,255,.08) 40%,rgba(255,255,255,.10) 100%),linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.02)); mix-blend-mode:screen; }
+    .topbar, .sidebar, .bottombar { position:fixed; z-index:10; backdrop-filter: blur(6px); background:rgba(250,250,248,.78); border:1px solid rgba(255,255,255,.85); box-shadow:0 10px 30px rgba(30,38,48,.12); }
+    .topbar { top:14px; left:14px; padding:14px 16px; border-radius:12px; max-width:720px; }
+    .eyebrow { font: 500 12px/1.3 "IBM Plex Mono", ui-monospace, monospace; letter-spacing:.08em; color:#72787f; text-transform:uppercase; }
+    h1 { margin:4px 0 8px; font: 500 47px/1.0 Georgia, serif; color:#2a3442; }
+    h1 span { color:#2875c6; font-style:italic; }
+    .sub { font-size:12px; color:#667684; letter-spacing:.05em; text-transform:uppercase; }
 
-    .hud {
-      position: fixed;
-      top: 14px;
-      left: 14px;
-      z-index: 10;
-      max-width: 580px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.9);
-      background: rgba(255,255,255,.8);
-      box-shadow: 0 10px 30px rgba(25,35,45,.14);
-      backdrop-filter: blur(7px);
-      padding: 12px 14px;
-      color: #243241;
-    }
-    .hud h1 { margin: 0 0 5px; font: 500 34px/1.05 "Georgia", "Times New Roman", serif; letter-spacing: .01em; }
-    .hud p { margin: 0; font: 13px/1.35 Inter, system-ui, sans-serif; color: #546271; }
-    .chip {
-      display: inline-block;
-      margin-top: 8px;
-      padding: 4px 9px;
-      border-radius: 999px;
-      border: 1px solid #b7cfdf;
-      background: #e2eff8;
-      color: #2a4e65;
-      font: 11px/1.1 Inter, system-ui, sans-serif;
-    }
-    .overlay {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      background:
-        radial-gradient(120vmax 95vmax at 19% 64%, rgba(183,231,255,.36), rgba(183,231,255,.08) 42%, rgba(255,255,255,.12) 100%),
-        linear-gradient(180deg, rgba(255,255,255,.2), rgba(255,255,255,.02));
-      mix-blend-mode: screen;
-      z-index: 2;
-    }
+    .sidebar { top:14px; right:14px; width:300px; max-height:calc(100vh - 28px); overflow:auto; border-radius:12px; padding:14px; }
+    .side-title { font:500 38px/1.0 Georgia, serif; color:#313842; margin:0; }
+    .side-sub { margin:3px 0 12px; color:#6d757d; font: 500 11px/1.2 "IBM Plex Mono", monospace; letter-spacing:.08em; text-transform:uppercase; }
+    .kpi { display:flex; justify-content:space-between; padding:10px 0; border-top:1px solid rgba(98,106,114,.14); }
+    .kpi span { font: 600 11px/1.2 "IBM Plex Mono", monospace; color:#79848e; letter-spacing:.08em; text-transform:uppercase; }
+    .kpi b { font: 500 34px/1 Georgia, serif; color:#2f91c9; }
+    .kpi b.bad { color:#c86666; }
+
+    .chips { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 14px; }
+    .chip { border:1px solid #9ec5df; border-radius:999px; background:#e7f4ff; color:#2a648d; padding:4px 9px; font-size:11px; }
+
+    .bottombar { left:50%; transform:translateX(-50%); bottom:16px; border-radius:12px; padding:9px; display:flex; gap:8px; align-items:center; }
+    button { border:1px solid rgba(88,101,112,.24); background:#f6f7f5; color:#3a4550; font:500 12px/1 Inter,sans-serif; padding:7px 11px; border-radius:8px; cursor:pointer; }
+    button.active { background:#2f79da; color:white; border-color:#2f79da; }
+    .year { font:500 39px/1 Georgia,serif; color:#2f79da; margin-left:10px; min-width:66px; text-align:center; }
+    input[type="range"]{ width:260px; accent-color:#2f79da; }
   </style>
 </head>
 <body>
-  <div id="viewDiv"></div>
-  <div class="overlay"></div>
-  <section class="hud">
-    <h1>California 3D Relief & River Atlas</h1>
-    <p>High-detail satellite + true terrain elevation rendering for the full state, with bright styling and softly faded neighboring regions.</p>
-    <span class="chip">Drag to orbit • right-drag tilt • wheel/pinch zoom • full CA framed</span>
-  </section>
+<div id="viewDiv"></div>
+<div class="overlay"></div>
+<section class="topbar">
+  <div class="eyebrow">Oncorhynchus Decline Atlas — Pacific Northwest</div>
+  <h1>Pacific <span>Salmon</span> &amp; Trout</h1>
+  <div class="sub">CA • OR • WA • 1700s–2024 • CDFW • NOAA Fisheries • Trout Unlimited</div>
+</section>
+<section class="sidebar">
+  <h2 class="side-title" id="basinTitle">Sacramento–San Joaquin</h2>
+  <div class="side-sub">Central Valley · California</div>
 
-  <script src="https://js.arcgis.com/4.30/"></script>
-  <script>
-    require([
-      "esri/Map",
-      "esri/views/SceneView",
-      "esri/layers/FeatureLayer",
-      "esri/layers/GraphicsLayer",
-      "esri/Graphic",
-      "esri/geometry/Polygon"
-    ], (Map, SceneView, FeatureLayer, GraphicsLayer, Graphic, Polygon) => {
+  <div class="kpi"><span>Historical Peak</span><b>~6 million</b></div>
+  <div class="kpi"><span>Current Adults</span><b class="bad" id="adultsVal">~128,000</b></div>
+  <div class="kpi"><span>Habitat Loss</span><b class="bad">~80%</b></div>
+  <div class="kpi"><span>Accessible Miles</span><b style="color:#343b43">1,240 mi</b></div>
 
-      const caCoords = [[
-        [-124.4096,42.0003],[-123.2333,42.0061],[-122.3789,42.0115],[-121.0370,41.9954],[-120.0019,41.9942],
-        [-120.0009,39.0002],[-119.9992,38.2146],[-118.7148,37.2361],[-117.4989,36.1123],[-114.6336,34.8730],
-        [-114.6349,34.2582],[-114.5352,33.9334],[-114.7214,33.4335],[-114.6616,33.0352],[-114.5249,32.7551],
-        [-117.1278,32.5369],[-117.2468,32.6683],[-118.4106,33.7403],[-119.0019,34.4620],[-120.4543,34.4480],
-        [-120.9126,34.9693],[-121.7979,36.2940],[-122.5167,37.5050],[-122.9346,38.1562],[-123.7138,39.3762],
-        [-124.2116,40.8215],[-124.4096,42.0003]
-      ]];
+  <div class="chips">
+    <span class="chip">Current Range</span>
+    <span class="chip">All Species</span>
+    <span class="chip">3D Terrain</span>
+    <span class="chip">Statewide Rivers</span>
+  </div>
 
-      const map = new Map({
-        basemap: "satellite",
-        ground: "world-elevation"
-      });
+  <div style="font:500 11px/1.2 'IBM Plex Mono',monospace;color:#7a8289;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Data Layers</div>
+  <div class="chips">
+    <span class="chip">CDFW CMP</span><span class="chip">NOAA SR</span><span class="chip">PFMC 2023</span>
+  </div>
+</section>
 
-      const view = new SceneView({
-        container: "viewDiv",
-        map,
-        qualityProfile: "high",
-        viewingMode: "global",
-        environment: {
-          atmosphereEnabled: true,
-          starsEnabled: false,
-          lighting: {
-            directShadowsEnabled: true,
-            ambientOcclusionEnabled: true,
-            date: new Date("2026-06-15T18:00:00Z")
-          }
-        },
-        camera: {
-          position: { longitude: -119.4, latitude: 36.8, z: 950000 },
-          heading: 340,
-          tilt: 58
-        },
-        constraints: {
-          altitude: { min: 160000, max: 3500000 }
-        },
-        highlightOptions: { color: [255, 255, 255, 0.95], haloOpacity: 1, fillOpacity: 0.1 }
-      });
+<div class="bottombar">
+  <button id="histBtn">Historical Range</button>
+  <button id="curBtn" class="active">Current Range</button>
+  <button id="declineBtn">% Decline Map</button>
+  <input id="yearSlider" type="range" min="1700" max="2024" value="1850" />
+  <div class="year" id="yearLabel">1850</div>
+</div>
 
-      const fadeLayer = new GraphicsLayer();
-      map.add(fadeLayer);
+<script src="https://js.arcgis.com/4.30/"></script>
+<script>
+require([
+  "esri/Map","esri/views/SceneView","esri/layers/FeatureLayer","esri/layers/GraphicsLayer","esri/Graphic","esri/geometry/Polygon","esri/renderers/SimpleRenderer"
+], (Map, SceneView, FeatureLayer, GraphicsLayer, Graphic, Polygon, SimpleRenderer) => {
 
-      const neighPolys = [
-        [[-124.8,46],[-116.2,46],[-116.2,42],[-124.5,42],[-124.8,46]], // OR
-        [[-120.1,42],[-114,42],[-114,35],[-114.6,35],[-118.7,37.2],[-120,39],[-120.1,42]], // NV
-        [[-114.9,37],[-109,37],[-109,31.2],[-114.6,31.2],[-114.6,35],[-114.9,37]], // AZ
-        [[-117.6,32.55],[-113,32.55],[-113,28.5],[-117.6,28.5],[-117.6,32.55]] // Mexico north
-      ];
+  const caCoords = [[[-124.4096,42.0003],[-123.2333,42.0061],[-122.3789,42.0115],[-121.037,41.9954],[-120.0019,41.9942],[-120.0009,39.0002],[-119.9992,38.2146],[-118.7148,37.2361],[-117.4989,36.1123],[-114.6336,34.873],[-114.6349,34.2582],[-114.5352,33.9334],[-114.7214,33.4335],[-114.6616,33.0352],[-114.5249,32.7551],[-117.1278,32.5369],[-117.2468,32.6683],[-118.4106,33.7403],[-119.0019,34.462],[-120.4543,34.448],[-120.9126,34.9693],[-121.7979,36.294],[-122.5167,37.505],[-122.9346,38.1562],[-123.7138,39.3762],[-124.2116,40.8215],[-124.4096,42.0003]]];
 
-      neighPolys.forEach(ring => {
-        fadeLayer.add(new Graphic({
-          geometry: new Polygon({ rings: [ring], spatialReference: { wkid: 4326 } }),
-          symbol: {
-            type: "simple-fill",
-            color: [245, 242, 235, 0.5],
-            outline: { color: [255,255,255,0.32], width: 1 }
-          }
-        }));
-      });
+  const map = new Map({ basemap:"satellite", ground:"world-elevation" });
+  const view = new SceneView({
+    container:"viewDiv", map, qualityProfile:"high", viewingMode:"global",
+    environment:{ atmosphereEnabled:true, starsEnabled:false, lighting:{ directShadowsEnabled:true, ambientOcclusionEnabled:true, date:new Date("2026-06-15T18:00:00Z") } },
+    camera:{ position:{longitude:-119.4, latitude:36.8, z:980000}, heading:340, tilt:60 },
+    constraints:{ altitude:{min:150000,max:3600000} }
+  });
 
-      fadeLayer.add(new Graphic({
-        geometry: new Polygon({ rings: caCoords, spatialReference: { wkid: 4326 } }),
-        symbol: {
-          type: "simple-fill",
-          color: [0,0,0,0],
-          outline: { color: [255,255,255,0.95], width: 2.2 }
-        }
-      }));
+  const fade = new GraphicsLayer(); map.add(fade);
+  [
+    [[-124.8,46],[-116.2,46],[-116.2,42],[-124.5,42],[-124.8,46]],
+    [[-120.1,42],[-114,42],[-114,35],[-114.6,35],[-118.7,37.2],[-120,39],[-120.1,42]],
+    [[-114.9,37],[-109,37],[-109,31.2],[-114.6,31.2],[-114.6,35],[-114.9,37]],
+    [[-117.6,32.55],[-113,32.55],[-113,28.5],[-117.6,28.5],[-117.6,32.55]]
+  ].forEach(r=>fade.add(new Graphic({geometry:new Polygon({rings:[r],spatialReference:{wkid:4326}}),symbol:{type:"simple-fill",color:[245,242,235,0.52],outline:{color:[255,255,255,.35],width:1}}})));
 
-      const rivers = new FeatureLayer({
-        url: "https://services9.arcgis.com/RHVPKKiFTONKtxq3/ArcGIS/rest/services/USA_Rivers_and_Streams/FeatureServer/0",
-        title: "Rivers and Streams",
-        definitionExpression: "STATE_NAME = 'California' OR STATE_ABBR = 'CA'",
-        elevationInfo: { mode: "on-the-ground" },
-        renderer: {
-          type: "simple",
-          symbol: {
-            type: "simple-line",
-            color: [85, 178, 228, 0.78],
-            width: 1.3,
-            cap: "round",
-            join: "round"
-          }
-        },
-        blendMode: "screen",
-        opacity: 0.86
-      });
-      map.add(rivers);
+  fade.add(new Graphic({geometry:new Polygon({rings:caCoords,spatialReference:{wkid:4326}}),symbol:{type:"simple-fill",color:[0,0,0,0],outline:{color:[255,255,255,0.95],width:2.4}}}));
 
-      const riversGlow = new FeatureLayer({
-        url: "https://services9.arcgis.com/RHVPKKiFTONKtxq3/ArcGIS/rest/services/USA_Rivers_and_Streams/FeatureServer/0",
-        definitionExpression: "STATE_NAME = 'California' OR STATE_ABBR = 'CA'",
-        elevationInfo: { mode: "on-the-ground" },
-        renderer: {
-          type: "simple",
-          symbol: { type: "simple-line", color: [215, 244, 255, 0.68], width: 0.6, cap: "round", join: "round" }
-        },
-        blendMode: "plus",
-        opacity: 0.9
-      });
-      map.add(riversGlow);
+  const rangeLayer = new GraphicsLayer({blendMode:"multiply",opacity:.82}); map.add(rangeLayer);
 
-      view.when(() => {
-        view.goTo({
-          target: new Polygon({ rings: caCoords, spatialReference: { wkid: 4326 } }),
-          heading: 340,
-          tilt: 58,
-          scale: 7600000
-        }, { duration: 0 });
-      });
+  const statewideRivers = new FeatureLayer({
+    url:"https://services9.arcgis.com/RHVPKKiFTONKtxq3/ArcGIS/rest/services/USA_Rivers_and_Streams/FeatureServer/0",
+    definitionExpression:"STATE_NAME = 'California' OR STATE_ABBR = 'CA'",
+    elevationInfo:{mode:"on-the-ground"},
+    renderer:new SimpleRenderer({symbol:{type:"simple-line",color:[85,178,228,.75],width:1.2,cap:"round",join:"round"}}),
+    blendMode:"screen", opacity:.86
+  });
+  const statewideRiversGlow = statewideRivers.clone();
+  statewideRiversGlow.renderer = new SimpleRenderer({symbol:{type:"simple-line",color:[212,245,255,.64],width:.6,cap:"round",join:"round"}});
+  statewideRiversGlow.blendMode = "plus";
+  map.addMany([statewideRivers, statewideRiversGlow]);
+
+  function rangeSymbol(color, outline=[255,255,255,.45]) {
+    return { type:"simple-fill", color, outline:{color:outline,width:1} };
+  }
+
+  function drawRanges(year, mode){
+    rangeLayer.removeAll();
+    const t=(year-1700)/(2024-1700);
+    const northPush=0.4*t;
+    const historic=[[-124.2,41.9],[-123.2,41.8],[-122.5,41.4],[-122.0,40.8],[-121.5,40.2],[-121.0,39.6],[-121.2,38.7],[-121.9,37.9],[-122.4,37.4],[-122.1,36.6],[-121.5,35.9],[-120.7,35.0],[-120.2,34.4],[-119.5,33.7],[-118.7,33.1],[-117.9,32.8],[-117.4,32.7],[-117.2,33.3],[-117.5,34.0],[-118.3,34.7],[-119.2,35.3],[-120.3,36.0],[-121.1,36.8],[-122.2,37.6],[-123.1,38.9],[-123.8,40.0],[-124.1,41.1],[-124.2,41.9]];
+    const current=historic.map(([x,y],i)=>[x+((i%4===0)?0.12:0), y+(i<8?northPush:0)-((i>14)?0.08:0)]);
+
+    const s=[
+      {name:"Chinook", hist:historic, cur:current, col:[41,150,211,.26]},
+      {name:"Coho", hist:historic.map(([x,y])=>[x-0.22,y+0.16]), cur:current.map(([x,y])=>[x-0.18,y+0.28]), col:[55,180,160,.24]},
+      {name:"Steelhead", hist:historic.map(([x,y])=>[x+0.16,y-0.08]), cur:current.map(([x,y])=>[x+0.22,y+0.05]), col:[74,132,236,.22]}
+    ];
+
+    s.forEach(sp=>{
+      const poly = new Polygon({rings:[mode==='historical'?sp.hist:sp.cur], spatialReference:{wkid:4326}});
+      rangeLayer.add(new Graphic({geometry:poly, symbol:rangeSymbol(sp.col)}));
     });
-  </script>
+
+    if(mode==='decline'){
+      const dec = new Polygon({rings:[current.map(([x,y],i)=>[x+((i%3===0)?0.08:0),y-0.03])],spatialReference:{wkid:4326}});
+      rangeLayer.add(new Graphic({geometry:dec,symbol:rangeSymbol([216,91,91,.30],[240,205,205,.55])}));
+    }
+
+    const adults = Math.max(62000, Math.round(6000000*(1-(0.88*t))));
+    document.getElementById('adultsVal').textContent = `~${adults.toLocaleString()}`;
+    document.getElementById('basinTitle').textContent = mode==='historical' ? 'Historic California Basins' : mode==='decline' ? 'Statewide Habitat Decline' : 'Sacramento–San Joaquin';
+  }
+
+  const slider=document.getElementById('yearSlider');
+  const yearLabel=document.getElementById('yearLabel');
+  let mode='current';
+  function refresh(){const y=+slider.value;yearLabel.textContent=y;drawRanges(y,mode);} 
+  slider.addEventListener('input',refresh);
+
+  document.getElementById('histBtn').onclick=()=>{mode='historical';setActive('histBtn');refresh();};
+  document.getElementById('curBtn').onclick=()=>{mode='current';setActive('curBtn');refresh();};
+  document.getElementById('declineBtn').onclick=()=>{mode='decline';setActive('declineBtn');refresh();};
+  function setActive(id){['histBtn','curBtn','declineBtn'].forEach(b=>document.getElementById(b).classList.toggle('active',b===id));}
+
+  view.when(()=>{
+    view.goTo({target:new Polygon({rings:caCoords,spatialReference:{wkid:4326}}),heading:340,tilt:60,scale:7600000},{duration:0});
+    refresh();
+  });
+});
+</script>
 </body>
 </html>
